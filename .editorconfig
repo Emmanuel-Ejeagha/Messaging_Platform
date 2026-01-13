@@ -1,0 +1,13 @@
+root = true
+
+[*.cs]
+# Code style
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:silent
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_prefer_braces = true:silent
+
+# Formatting
+indent-size = 4
+tab_width = 4
