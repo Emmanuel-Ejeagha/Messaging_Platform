@@ -13,6 +13,7 @@ public sealed class Message : BaseEntity
     public Guid ConversationId { get; private set; }
     public UserId SenderId { get; private set; }
     public MessageContent Content { get; private set; }
+    public MessageContentType ContentType { get; private set; }
     public Guid? ParentMessageId { get; private set; }
     public int ThreadDepth { get; private set; }
     public MessageStatus Status { get; private set; } = MessageStatus.Sent;
