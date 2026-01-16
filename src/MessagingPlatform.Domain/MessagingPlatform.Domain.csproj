@@ -7,17 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Common/" />
-    <Folder Include="Entities/" />
-    <Folder Include="Enums/" />
-    <Folder Include="Events/" />
-    <Folder Include="Exceptions/" />
-    <Folder Include="Interfaces/" />
-    <Folder Include="ValueObjects/" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- <PackageReference Include="Ardalis.GuardClauses" /> -->
+    <PackageReference Include="Ardalis.GuardClauses" />
   </ItemGroup>
 
 </Project>
