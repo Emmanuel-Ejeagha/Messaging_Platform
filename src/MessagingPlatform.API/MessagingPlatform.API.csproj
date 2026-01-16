@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Project references -->
+    <ProjectReference Include="..\MessagingPlatform.Application\MessagingPlatform.Application.csproj" />
+    <ProjectReference Include="..\MessagingPlatform.Infrastructure\MessagingPlatform.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Web API packages only -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    
+    <!-- Problem Details for error handling -->
+    <PackageReference Include="Hellang.Middleware.ProblemDetails" />
+    
+    <!-- Rate limiting -->
+    <PackageReference Include="AspNetCoreRateLimit" />
+    
+    <!-- Health checks -->
+    <PackageReference Include="AspNetCore.HealthChecks.UI" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    
+    <!-- JSON serialization -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
+    
+    <!-- Correlation IDs -->
+    <PackageReference Include="CorrelationId" />
+    
+    <!-- HTTP context accessor for CurrentUserService -->
+    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Controllers/" />
+    <Folder Include="Models/" />
+    <Folder Include="Models/Reponses/" />
+  </ItemGroup>
+
+</Project>
