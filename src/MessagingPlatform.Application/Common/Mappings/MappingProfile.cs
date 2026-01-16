@@ -28,10 +28,15 @@ public class MappingProfile : Profile
         // Message mappings
         CreateMap<Message, MessageDto>()
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content.Text))
-            .ForMember(dest => dest.ContentType, opt => opt.MapFrom(src => src.ContentType.ToString()))
+            .ForMember(dest => dest.ContentType, opt => opt.MapFrom(src => src.Content.Type.ToString()))
             .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()));
 
+
         CreateMap<MessageReadReceipt, ReadReceiptDto>();
+        
+        CreateMap<Domain.Events.MessageAddedEvent, Application.Events.MessageAddedNotification>();
+        CreateMap<Domain.Events.MessageEditedEvent, Application.Events.MessageEditedNotification>();
+        CreateMap<Domain.Events.MessageDeletedEvent, Application.Events.MessageDeletedNotification>();
             
     }
 }
