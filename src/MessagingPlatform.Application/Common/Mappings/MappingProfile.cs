@@ -11,11 +11,17 @@ public class MappingProfile : Profile
     public MappingProfile()
     {
         // Conversation mappings
-        CreateMap<Conversation, ConversationDto>()
+        CreateMap<Conversation, ConversationDetailsDto>()
+            .IncludeBase<Conversation, ConversationDto>()
             .ForMember(dest => dest.Name, opt => opt.MapFrom(src =>
                 (src as GroupConversation) != null ? ((GroupConversation)src).Name : null))
             .ForMember(dest => dest.Description, opt => opt.MapFrom(src =>
                 (src as GroupConversation) != null ? ((GroupConversation)src).Description : null))
+            .ForMember(dest => dest.RecentMessages, 
+        opt => opt.MapFrom(src => src.Messages
+            .Where(m => !m.IsDeleted)
+            .OrderByDescending(m => m.CreatedAt)
+            .Take(50)))
             .ForMember(dest => dest.AvatarUrl, opt => opt.MapFrom(src =>
                 (src as GroupConversation) != null ? ((GroupConversation)src).AvatarUrl : null));
 
