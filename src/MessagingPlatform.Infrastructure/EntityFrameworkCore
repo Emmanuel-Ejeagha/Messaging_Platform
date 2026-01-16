@@ -1,0 +1,10 @@
+  Determining projects to restore...
+  Writing /tmp/tmpbS5afA.tmp
+info : X.509 certificate chain validation will use the fallback certificate bundle at '/usr/share/dotnet/sdk/9.0.203/trustedroots/codesignctl.pem'.
+info : X.509 certificate chain validation will use the fallback certificate bundle at '/usr/share/dotnet/sdk/9.0.203/trustedroots/timestampctl.pem'.
+info : Adding PackageReference for package 'Microsoft' into project '/home/emmytek/Desktop/Messaging_App/src/MessagingPlatform.Infrastructure/MessagingPlatform.Infrastructure.csproj'.
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft/index.json
+info :   NotFound https://api.nuget.org/v3/registration5-gz-semver2/microsoft/index.json 249ms
+info :   GET https://api.nuget.org/v3/registration5-gz-semver2/microsoft/index.json
+info :   NotFound https://api.nuget.org/v3/registration5-gz-semver2/microsoft/index.json 554ms
+error: There are no versions available for the package 'Microsoft'.
