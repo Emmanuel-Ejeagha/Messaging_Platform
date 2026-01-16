@@ -23,14 +23,14 @@ public static class DependencyInjection
             cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
         });
 
-        // FluentValidation
-        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+        // // FluentValidation
+        // services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
-        // Current User Service 
-        services.AddScoped<ICurrentUserService, CurrentUserService>();
+        // // Current User Service 
+        // services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-        // Domain Event Service
-        services.AddScoped<IDomainEventService, DomainEventService>();
+        // // Domain Event Service
+        // services.AddScoped<IDomainEventService, DomainEventService>();
 
         return services;
     }
