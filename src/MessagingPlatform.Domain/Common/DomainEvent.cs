@@ -1,8 +1,10 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MessagingPlatform.Domain.Common;
 
-public abstract class DomainEvent : INotification
+[NotMapped]
+public abstract class DomainEvent //: INotification
 {
     public Guid EventId { get; } = Guid.NewGuid();
     public DateTime OccurredOn { get; } = DateTime.UtcNow;
