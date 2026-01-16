@@ -6,7 +6,7 @@ using MessagingPlatform.Application.Features.Conversations.DTOs;
 
 namespace MessagingPlatform.Application.Features.Conversations.Queries;
 
-public class GetUserConversationQuery : IRequest<ApplicationResult<PaginatedList<ConversationDto>>>
+public class GetUserConversationsQuery : IRequest<ApplicationResult<PaginatedList<ConversationDto>>>
 {
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 20;
