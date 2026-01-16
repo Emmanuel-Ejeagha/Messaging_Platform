@@ -12,14 +12,14 @@ using MessagingPlatform.Domain.ValueObjects;
 
 namespace MessagingPlatform.Application.Features.Conversations.Handlers;
 
-public class GetUserConversationQueryHandler
-    : IRequestHandler<GetUserConversationQuery, ApplicationResult<PaginatedList<ConversationDto>>>
+public class GetUserConversationsQueryHandler
+    : IRequestHandler<GetUserConversationsQuery, ApplicationResult<PaginatedList<ConversationDto>>>
 {
     private readonly IConversationRepository _conversationRepository;
     private readonly IMapper _mapper;
     private readonly ICurrentUserService _currentUserService;
 
-    public GetUserConversationQueryHandler(
+    public GetUserConversationsQueryHandler(
         IConversationRepository conversationRepository,
         IMapper mapper,
         ICurrentUserService currentUserService)
@@ -30,7 +30,7 @@ public class GetUserConversationQueryHandler
     }
 
     public async Task<ApplicationResult<PaginatedList<ConversationDto>>> Handle(
-        GetUserConversationQuery request,
+        GetUserConversationsQuery request,
         CancellationToken cancellationToken)
     {
         try
