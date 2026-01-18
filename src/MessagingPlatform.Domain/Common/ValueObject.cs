@@ -1,5 +1,3 @@
-using System;
-
 namespace MessagingPlatform.Domain.Common;
 
 public abstract class ValueObject
@@ -15,28 +13,26 @@ public abstract class ValueObject
         return GetEqualityComponents().SequenceEqual(other.GetEqualityComponents());
     }
 
-    public static bool operator ==(ValueObject left, ValueObject right)
+    public override int GetHashCode()
     {
-        return Equals(left, right);
+        return GetEqualityComponents()
+            .Select(x => x?.GetHashCode() ?? 0)
+            .Aggregate((x, y) => x ^ y);
     }
 
-    public static bool operator !=(ValueObject left, ValueObject right)
+    public static bool operator ==(ValueObject? left, ValueObject? right)
     {
-        return !Equals(left, right);
-    }
+        if (left is null && right is null)
+            return true;
 
-    protected static bool EqualsOperator(ValueObject left, ValueObject right)
-    {
-        if (ReferenceEquals(left, null) ^ ReferenceEquals(right, null))
+        if (left is null || right is null)
             return false;
 
-        return ReferenceEquals(left, null) || left.Equals(right);
+        return left.Equals(right);
     }
-    
-    protected static bool NotEqualOperator(ValueObject left, ValueObject right)
-    {
-        return !EqualsOperator(left, right);
-    }
-    
 
+    public static bool operator !=(ValueObject? left, ValueObject? right)
+    {
+        return !(left == right);
+    }
 }

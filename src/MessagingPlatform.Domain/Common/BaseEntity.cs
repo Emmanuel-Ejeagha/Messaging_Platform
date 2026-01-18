@@ -1,17 +1,54 @@
-using System;
-
 namespace MessagingPlatform.Domain.Common;
 
 public abstract class BaseEntity
 {
-    public Guid Id { get; protected set; } = Guid.NewGuid();
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public Guid Id { get; protected set; }
+    public DateTime CreatedAt { get; protected set; }
     public DateTime? UpdatedAt { get; protected set; }
 
-    private readonly List<DomainEvent> _domainEvent = new();
-    public IReadOnlyCollection<DomainEvent> DomainEvents => _domainEvent.AsReadOnly();
-    protected void AddDomainEvent(DomainEvent domainEvent) => _domainEvent.Add(domainEvent);
-    public void ClearDomainEvents() => _domainEvent.Clear();
-    public void UpdateTimestamp() => UpdatedAt = DateTime.Now;
-}
+    protected BaseEntity()
+    {
+        Id = Guid.NewGuid();
+        CreatedAt = DateTime.UtcNow;
+    }
 
+    protected void SetUpdatedTimestamp()
+    {
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not BaseEntity other)
+            return false;
+
+        if (ReferenceEquals(this, other))
+            return true;
+
+        if (GetType() != other.GetType())
+            return false;
+
+        return Id == other.Id;
+    }
+
+    public override int GetHashCode()
+    {
+        return Id.GetHashCode();
+    }
+
+    public static bool operator ==(BaseEntity? left, BaseEntity? right)
+    {
+        if (left is null && right is null)
+            return true;
+
+        if (left is null || right is null)
+            return false;
+
+        return left.Equals(right);
+    }
+
+    public static bool operator !=(BaseEntity? left, BaseEntity? right)
+    {
+        return !(left == right);
+    }
+}
