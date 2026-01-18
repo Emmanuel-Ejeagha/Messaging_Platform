@@ -1,139 +1,167 @@
-using System;
 using MessagingPlatform.Domain.Common;
 using MessagingPlatform.Domain.Enums;
 using MessagingPlatform.Domain.Events;
 using MessagingPlatform.Domain.Exceptions;
 using MessagingPlatform.Domain.ValueObjects;
-using static MessagingPlatform.Domain.Exceptions.DomainException;
 
 namespace MessagingPlatform.Domain.Entities;
 
-public abstract class Conversation : BaseEntity, IAggregateRoot
+public sealed class Conversation : AggregateRoot
 {
-    public ConversationStatus Status { get; protected set; } = ConversationStatus.Active;
-    public DateTime? LastMessageAt { get; protected set; }
-    
     private readonly List<Participant> _participants = new();
+    private readonly List<Guid> _messageIds = new();
+
+    public string Title { get; private set; } = string.Empty;
+    public ConversationType Type { get; private set; }
+    public Guid? GroupId { get; private set; }
+    public DateTime LastMessageAt { get; private set; }
+    public bool IsArchived { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
+
     public IReadOnlyCollection<Participant> Participants => _participants.AsReadOnly();
+    public IReadOnlyCollection<Guid> MessageIds => _messageIds.AsReadOnly();
 
-    private readonly List<Message> _messages = new();
-    public IReadOnlyCollection<Message> Messages => _messages.AsReadOnly();
-    public bool IsDeleted { get; protected set; } = false;
-    public DateTime? DeletedAt { get; set; }
+    // Private constructor for EF Core
+    private Conversation() { }
 
-    public abstract ConversationType Type { get; }
-
-    // Domain Methods
-    public Participant AddParticipant(UserId userId, ParticipantRole role = ParticipantRole.Member)
+    private Conversation(string title, ConversationType type, Guid? groupId = null)
     {
-        // Check if user is already a participant
-        if (_participants.Any(p => p.UserId == userId))
-            throw new ParticipantDomainException($"User {userId} is already a participant");
-
-        var participant = new Participant(Id, userId, role);
-        _participants.Add(participant);
-
-        AddDomainEvent(new ParticipantAddedEvent(Id, userId, role));
-        UpdateTimestamp();
-
-        return participant;
+        Title = title ?? throw new ArgumentNullException(nameof(title));
+        Type = type;
+        GroupId = groupId;
+        LastMessageAt = CreatedAt;
+        IsArchived = false;
     }
 
-    public Message AddMessage(
-        UserId senderId,
-        MessageContent content,
-        Guid? parentMessageId = null,
-        Dictionary<string, object>? metadata = null)
+    public static Conversation CreateOneOnOne(UserId user1, UserId user2)
     {
-        // Business rules validations
-        // Validate sender is a participant
-        if (!_participants.Any(p => p.UserId == senderId))
-            throw new MessageDomainException($"User {senderId} is not a participant in this conversation");
+        var conversation = new Conversation($"Chat: {user1.Value} & {user2.Value}", ConversationType.OneOnOne);
+        
+        conversation.AddParticipant(user1, ParticipantRole.Member);
+        conversation.AddParticipant(user2, ParticipantRole.Member);
 
-        // Validate parent message exists in this conversation if provided
-        if (parentMessageId.HasValue)
-        {
-            var parentMessage = _messages.FirstOrDefault(m => m.Id == parentMessageId);
+        conversation.AddDomainEvent(new ConversationCreatedEvent(
+            conversation.Id,
+            conversation.Title,
+            new List<Guid> { user1.Value, user2.Value }));
 
-            if (parentMessage == null)
-                throw new MessageDomainException("Parent message not found in this conversation");
-        }
+        return conversation;
+    }
 
-        var message = new Message(Id, senderId, content, parentMessageId);
+    public static Conversation CreateGroup(string title, UserId creatorId)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            throw new ArgumentException("Group title cannot be empty", nameof(title));
 
-        if (metadata != null)
-        {
-            foreach (var kvp in metadata)
-                message.AddMetadata(kvp.Key, kvp.Value);
-        }
+        if (title.Length > 100)
+            throw new ArgumentException("Group title cannot exceed 100 characters", nameof(title));
 
-        _messages.Add(message);
+        var conversation = new Conversation(title, ConversationType.Group);
+        conversation.AddParticipant(creatorId, ParticipantRole.Owner);
+
+        conversation.AddDomainEvent(new ConversationCreatedEvent(
+            conversation.Id,
+            conversation.Title,
+            new List<Guid> { creatorId.Value }));
+
+        return conversation;
+    }
+
+    public void AddParticipant(UserId userId, ParticipantRole role = ParticipantRole.Member)
+    {
+        if (_participants.Any(p => p.UserId == userId.Value))
+            throw new DomainException($"User {userId.Value} is already a participant in this conversation");
+
+        if (Type == ConversationType.OneOnOne && _participants.Count >= 2)
+            throw new DomainException("One-on-one conversations cannot have more than 2 participants");
+
+        var participant = Participant.Create(userId, role, Id);
+        _participants.Add(participant);
+        
+        SetUpdatedTimestamp();
+    }
+
+    public void RemoveParticipant(UserId userId)
+    {
+        var participant = _participants.FirstOrDefault(p => p.UserId == userId.Value);
+        if (participant == null)
+            throw new DomainException($"User {userId.Value} is not a participant in this conversation");
+
+        // Don't allow removing the last participant
+        if (_participants.Count <= 1)
+            throw new DomainException("Cannot remove the last participant from a conversation");
+
+        _participants.Remove(participant);
+        SetUpdatedTimestamp();
+    }
+
+    public void UpdateTitle(string newTitle, UserId requesterId)
+    {
+        if (Type != ConversationType.Group)
+            throw new DomainException("Only group conversations can have their title updated");
+
+        var requester = _participants.FirstOrDefault(p => p.UserId == requesterId.Value);
+        if (requester == null || requester.Role == ParticipantRole.Member)
+            throw new DomainException("Only admins and owners can update conversation title");
+
+        if (string.IsNullOrWhiteSpace(newTitle) || newTitle.Length > 100)
+            throw new DomainException("Title must be between 1 and 100 characters");
+
+        Title = newTitle;
+        SetUpdatedTimestamp();
+    }
+
+    public void AddMessage(Guid messageId)
+    {
+        if (_messageIds.Contains(messageId))
+            throw new DomainException($"Message {messageId} is already in this conversation");
+
+        _messageIds.Add(messageId);
         LastMessageAt = DateTime.UtcNow;
-        UpdateTimestamp();
-
-        AddDomainEvent(new MessageAddedEvent(Id, message.Id, senderId));
-
-        return message;
+        SetUpdatedTimestamp();
     }
 
     public void Archive()
     {
-        if (Status == ConversationStatus.Archived)
-            return;
-
-        Status = ConversationStatus.Archived;
-        UpdateTimestamp();
-
-        AddDomainEvent(new ConversationArchivedEvent(Id));
+        IsArchived = true;
+        SetUpdatedTimestamp();
     }
 
-    public void MarkMessageAsRead(Guid messageId, UserId userId)
+    public void Unarchive()
     {
-        var message = _messages.FirstOrDefault(m => m.Id == messageId);
-        if (message == null)
-            throw new MessageDomainException("Message not found");
-
-        // Only mark aS readb if user is a participant and message is from someone else
-        if (message.SenderId != userId)
-        {
-            message.MarkAsRead(userId);
-            UpdateTimestamp();
-        }
+        IsArchived = false;
+        SetUpdatedTimestamp();
     }
 
-    // Factory method for one-to-one conversations
-    public static OneToOneConversation CreatedOneToOne(UserId user1Id, UserId user2Id)
+    public bool HasParticipant(UserId userId)
     {
-        var conversation = new OneToOneConversation();
-        conversation.AddParticipant(user1Id, ParticipantRole.Member);
-        conversation.AddParticipant(user2Id, ParticipantRole.Member);
-        return conversation;
+        return _participants.Any(p => p.UserId == userId.Value);
     }
 
-    // Factory method for group conversations
-    public static GroupConversation CreateGroup(string name, UserId creatorId)
+    public Participant? GetParticipant(UserId userId)
     {
-        var conversation = new GroupConversation(name);
-        conversation.AddParticipant(creatorId, ParticipantRole.Owner);
-        return conversation;
+        return _participants.FirstOrDefault(p => p.UserId == userId.Value);
     }
-
-    public void SoftDelete()
-    {
-        if (IsDeleted)
-            return;
-
-        IsDeleted = true;
-        DeletedAt = DateTime.UtcNow;
-        UpdateTimestamp();
-
-        AddDomainEvent(new ConversationDeletedEvent(Id));
-    }
-}
-
-public enum ConversationType
+    public void Delete(UserId requesterId)
 {
-    OneToOne,
-    Group
+    var requester = _participants.FirstOrDefault(p => p.UserId == requesterId.Value);
+    if (requester == null || (requester.Role != ParticipantRole.Admin && requester.Role != ParticipantRole.Owner))
+        throw new DomainException("Only admins and owners can delete conversations");
+
+    IsDeleted = true;
+    DeletedAt = DateTime.UtcNow;
+    SetUpdatedTimestamp();
 }
 
+    public void Restore(UserId requesterId)
+    {
+        var requester = _participants.FirstOrDefault(p => p.UserId == requesterId.Value);
+        if (requester == null || (requester.Role != ParticipantRole.Admin && requester.Role != ParticipantRole.Owner))
+            throw new DomainException("Only admins and owners can restore conversations");
+
+        IsDeleted = false;
+        DeletedAt = null;
+        SetUpdatedTimestamp();
+    }
+}

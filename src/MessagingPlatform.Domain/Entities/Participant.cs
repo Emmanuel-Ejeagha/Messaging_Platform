@@ -1,50 +1,60 @@
-using System;
 using MessagingPlatform.Domain.Common;
 using MessagingPlatform.Domain.Enums;
+using MessagingPlatform.Domain.Exceptions;
 using MessagingPlatform.Domain.ValueObjects;
 
 namespace MessagingPlatform.Domain.Entities;
 
 public sealed class Participant : BaseEntity
 {
+    public Guid UserId { get; private set; }
     public Guid ConversationId { get; private set; }
-    public UserId UserId { get; private set; }
     public ParticipantRole Role { get; private set; }
-    public DateTime JoinedAt { get; private set; } = DateTime.UtcNow;
-    public DateTime? LastReadAt { get; private set; }
-    public int UnreadCount { get; private set; }
+    public DateTime JoinedAt { get; private set; }
+    public DateTime? LeftAt { get; private set; }
+    public bool IsActive => LeftAt == null;
 
+    // Navigation properties (EF Core will use these)
+    public Conversation? Conversation { get; private set; }
+
+    // Private constructor for EF Core
     private Participant() { }
 
-    public Participant(Guid conversationId, UserId userId, ParticipantRole role)
+    private Participant(UserId userId, ParticipantRole role, Guid conversationId)
     {
-        ConversationId = conversationId;
-        UserId = userId;
+        UserId = userId.Value;
         Role = role;
+        ConversationId = conversationId;
+        JoinedAt = DateTime.UtcNow;
     }
 
-    public void ChangeRole(ParticipantRole newRole)
+    internal static Participant Create(UserId userId, ParticipantRole role, Guid conversationId)
     {
+        return new Participant(userId, role, conversationId);
+    }
+
+    public void UpdateRole(ParticipantRole newRole, UserId requesterId)
+    {
+        // Only owners can change roles (this logic will be enforced by the aggregate root)
         Role = newRole;
-        UpdateTimestamp();
+        SetUpdatedTimestamp();
     }
 
-    public void UpdateLastRead(DateTime timestamp)
+    public void Leave()
     {
-        LastReadAt = timestamp;
-        UnreadCount = 0;
-        UpdateTimestamp();
+        if (LeftAt.HasValue)
+            throw new DomainException("Participant has already left");
+
+        LeftAt = DateTime.UtcNow;
+        SetUpdatedTimestamp();
     }
 
-    public void IncrementUnreadCount()
+    public void Rejoin()
     {
-        UnreadCount++;
-        UpdateTimestamp();
-    }
-    
-    public void ResetUnreadCount()
-    {
-        UnreadCount = 0;
-        UpdateTimestamp();
+        if (!LeftAt.HasValue)
+            throw new DomainException("Participant is already active");
+
+        LeftAt = null;
+        SetUpdatedTimestamp();
     }
 }

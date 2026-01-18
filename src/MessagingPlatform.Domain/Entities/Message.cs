@@ -1,5 +1,3 @@
-// Domain/Entities/Message.cs
-using System;
 using MessagingPlatform.Domain.Common;
 using MessagingPlatform.Domain.Enums;
 using MessagingPlatform.Domain.Events;
@@ -8,94 +6,142 @@ using MessagingPlatform.Domain.ValueObjects;
 
 namespace MessagingPlatform.Domain.Entities;
 
-public sealed class Message : BaseEntity
+public sealed class Message : AggregateRoot
 {
     public Guid ConversationId { get; private set; }
-    public UserId SenderId { get; private set; }
-    public MessageContent Content { get; private set; }  // Contains Type property
+    public Guid SenderId { get; private set; }
+    public MessageContent Content { get; private set; } = null!;
+    public MessageStatus Status { get; private set; }
     public Guid? ParentMessageId { get; private set; }
-    public int ThreadDepth { get; private set; }
-    public MessageStatus Status { get; private set; } = MessageStatus.Sent;
-    public bool IsDeleted { get; private set; } = false;
+    public bool IsEdited { get; private set; }
+    public DateTime? ReadAt { get; private set; }
+    public DateTime? DeliveredAt { get; private set; }
+    public bool IsDeleted { get; private set; }
     public DateTime? DeletedAt { get; private set; }
-    public UserId? DeletedBy { get; private set; }
-    public Dictionary<string, object>? Metadata { get; private set; }
 
-    // Read tracking
-    private readonly List<MessageReadReceipt> _readReceipts = new();
-    public IReadOnlyCollection<MessageReadReceipt> ReadReceipts => _readReceipts.AsReadOnly();
+    // Navigation property for threading
+    public Message? ParentMessage { get; private set; }
+    private readonly List<Message> _replies = new();
+    public IReadOnlyCollection<Message> Replies => _replies.AsReadOnly();
 
-    // For EF Core
+    // Private constructor for EF Core
     private Message() { }
 
-    public Message(Guid conversationId, UserId senderId, MessageContent content, Guid? parentMessageId = null)
+    private Message(
+        Guid conversationId,
+        UserId senderId,
+        MessageContent content,
+        Guid? parentMessageId = null)
     {
         ConversationId = conversationId;
-        SenderId = senderId;
+        SenderId = senderId.Value;
         Content = content;
+        Status = MessageStatus.Sent;
         ParentMessageId = parentMessageId;
-        ThreadDepth = parentMessageId.HasValue ? 1 : 0;
+        IsEdited = false;
+
+        AddDomainEvent(new MessageSentEvent(
+            Id,
+            ConversationId,
+            SenderId,
+            Content.Content));
     }
 
-    public void AddMetadata(string key, object value)
+    public static Message Create(
+        Guid conversationId,
+        UserId senderId,
+        string content,
+        string? mediaUrl = null,
+        Guid? parentMessageId = null)
     {
-        Metadata ??= new Dictionary<string, object>();
-        Metadata[key] = value;
+        var messageContent = MessageContent.Create(content, mediaUrl);
+        return new Message(conversationId, senderId, messageContent, parentMessageId);
     }
 
-    public void MarkAsRead(UserId userId)
+    public static Message CreateReply(
+        Guid conversationId,
+        UserId senderId,
+        Guid parentMessageId,
+        string content,
+        string? mediaUrl = null)
     {
-        if (_readReceipts.Any(r => r.UserId == userId))
-            return;
-
-        _readReceipts.Add(new MessageReadReceipt(Id, userId));
+        var messageContent = MessageContent.Create(content, mediaUrl);
+        return new Message(conversationId, senderId, messageContent, parentMessageId);
     }
 
-    public void UpdateContent(MessageContent newContent, UserId editorId)
+    public void UpdateContent(string newContent, UserId requesterId)
     {
-        if (IsDeleted)
-            throw new MessageDomainException("Cannot edit a deleted message");
+        if (requesterId.Value != SenderId)
+            throw new DomainException("Only the message sender can edit the message");
 
-        if (!CanBeEditedBy(editorId))
-            throw new MessageDomainException("User cannot edit this message");
-        
-        Content = newContent;
-        UpdateTimestamp();
-        AddDomainEvent(new MessageEditedEvent(Id, ConversationId, editorId));
+        if (DateTime.UtcNow > CreatedAt.AddHours(24))
+            throw new DomainException("Messages can only be edited within 24 hours of sending");
+
+        var newMessageContent = MessageContent.Create(newContent, Content.MediaUrl);
+        Content = newMessageContent;
+        IsEdited = true;
+        SetUpdatedTimestamp();
     }
 
-    public void MarkAsDeleted(UserId deletedBy)
+    public void MarkAsDelivered()
     {
-        if (IsDeleted)
-            return;
-
-        IsDeleted = true;
-        DeletedAt = DateTime.UtcNow;
-        DeletedBy = deletedBy;  // ✅ Fixed typo: was DeletedBy = DeletedBy;
-
-        Content = MessageContent.CreateDeleted("[Message deleted]");
-        UpdateTimestamp();
-        AddDomainEvent(new MessageDeletedEvent(Id, ConversationId, deletedBy));
+        if (Status == MessageStatus.Sent)
+        {
+            Status = MessageStatus.Delivered;
+            DeliveredAt = DateTime.UtcNow;
+            SetUpdatedTimestamp();
+        }
     }
 
-    public bool CanBeEditedBy(UserId userId)
+    public void MarkAsRead()
     {
-        return SenderId == userId &&
-               !IsDeleted &&
-               !_readReceipts.Any(r => r.UserId != userId);
+        if (Status != MessageStatus.Failed)
+        {
+            Status = MessageStatus.Read;
+            ReadAt = DateTime.UtcNow;
+            
+            // Ensure delivered first
+            if (!DeliveredAt.HasValue)
+            {
+                DeliveredAt = DateTime.UtcNow;
+            }
+            
+            SetUpdatedTimestamp();
+        }
     }
 
-    public bool CanBeDeletedBy(UserId userId)
+    public void MarkAsFailed()
     {
-        // Sender or conversation admin can delete
-        return SenderId == userId || IsAdmin(userId);
+        Status = MessageStatus.Failed;
+        SetUpdatedTimestamp();
     }
-    
-    private bool IsAdmin(UserId userId)
+
+    public void AddReply(Message reply)
     {
-        // This would require access to the participant
-        // We'll implement this in the application layer or domain service
-        // For now, return false
-        return false;
+        if (reply.ParentMessageId != Id)
+            throw new DomainException("Reply must reference this message as parent");
+
+        _replies.Add(reply);
+    }
+
+    public bool IsReply => ParentMessageId.HasValue;
+    public void Delete(UserId requesterId)
+{
+    if (requesterId.Value != SenderId)
+        throw new DomainException("Only the message sender can delete the message");
+
+    IsDeleted = true;
+    DeletedAt = DateTime.UtcNow;
+    SetUpdatedTimestamp();
+}
+
+    public void Restore(UserId requesterId)
+    {
+        if (requesterId.Value != SenderId)
+            throw new DomainException("Only the message sender can restore the message");
+
+        IsDeleted = false;
+        DeletedAt = null;
+        SetUpdatedTimestamp();
     }
 }
