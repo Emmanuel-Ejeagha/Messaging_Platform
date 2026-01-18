@@ -1,9 +1,23 @@
 <Project>
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <Nullable>true</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <TreatWarningAsErrors>true</TreatWarningAsErrors>
-        <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    </PropertyGroup>
+  <PropertyGroup>
+    <!-- Common properties for all projects -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn> <!-- Suppress missing XML doc warnings -->
+    
+    <!-- Code analysis settings -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    
+    <!-- Versioning -->
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+  
+  <!-- Common package references for test projects -->
+
 </Project>
