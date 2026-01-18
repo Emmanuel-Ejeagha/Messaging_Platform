@@ -1,6 +1,7 @@
-using System;
 using FluentValidation;
 using MediatR;
+using MessagingPlatform.Application.Common.Exceptions;
+using ValidationException = MessagingPlatform.Application.Common.Exceptions.ValidationException;
 
 namespace MessagingPlatform.Application.Common.Behaviors;
 
@@ -19,24 +20,23 @@ public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TReques
         RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
-        if (_validators.Any())
+        if (!_validators.Any())
+            return await next();
+
+        var context = new ValidationContext<TRequest>(request);
+
+        var validationResults = await Task.WhenAll(
+            _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
+
+        var failures = validationResults
+            .SelectMany(r => r.Errors)
+            .Where(f => f != null)
+            .ToList();
+
+        if (failures.Count != 0)
         {
-            var context = new ValidationContext<TRequest>(request);
-
-            var validationResults = await Task.WhenAll(
-                _validators.Select(v => v.ValidateAsync(context, cancellationToken)));
-
-            var failures = validationResults
-                .SelectMany(r => r.Errors)
-                .Where(f => f != null)
-                .ToList();
-
-            if (failures.Count != 0)
-            {
-                // We need to handle this based on TResponse type
-                // This is simplified - in production, you'd need to handle generics properly
-                throw new ValidationException(failures);
-            }
+            var errorMessages = failures.Select(f => f.ErrorMessage);
+            throw new ValidationException(errorMessages);
         }
 
         return await next();

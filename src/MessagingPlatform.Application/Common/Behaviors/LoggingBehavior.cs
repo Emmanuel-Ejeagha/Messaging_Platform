@@ -1,4 +1,3 @@
-using System;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -21,19 +20,16 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     {
         var requestName = typeof(TRequest).Name;
 
-        _logger.LogInformation("Handling {RequestName} with {@Request}", requestName, request);
+        _logger.LogInformation(
+            "Handling request: {RequestName} ({@Request})",
+            requestName, request);
 
-        try
-        {
-            var response = await next();
-            _logger.LogInformation("Handled {RequestName} successfully", requestName);
+        var response = await next();
 
-            return response;
-        }
-        catch (ApplicationException ex)
-        {
-            _logger.LogError(ex, "Error handling {RequestName}", requestName);
-            throw;
-        }
+        _logger.LogInformation(
+            "Completed request: {RequestName}",
+            requestName);
+
+        return response;
     }
 }
