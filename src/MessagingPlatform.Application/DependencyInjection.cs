@@ -1,10 +1,7 @@
-using System;
 using FluentValidation;
 using MediatR;
-using MessagingPlatform.Application.Common.Behaviors;
-using MessagingPlatform.Application.Common.Interfaces;
-using MessagingPlatform.Application.Common.Mappings;
 using Microsoft.Extensions.DependencyInjection;
+using MessagingPlatform.Application.Common.Behaviors;
 
 namespace MessagingPlatform.Application;
 
@@ -12,25 +9,19 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        // AutoMapper
-        services.AddAutoMapper(typeof(MappingProfile).Assembly);
-
-        // MediatR
-        services.AddMediatR(cfg =>
+        // Register MediatR
+        services.AddMediatR(config =>
         {
-            cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
-            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-            cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+            config.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
         });
 
-        // // FluentValidation
-        // services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
+        // Register validation behaviors
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
-        // // Current User Service 
-        // services.AddScoped<ICurrentUserService, CurrentUserService>();
-
-        // // Domain Event Service
-        // services.AddScoped<IDomainEventService, DomainEventService>();
+        // Register FluentValidation validators
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;
     }

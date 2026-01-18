@@ -5,20 +5,57 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
-  <ItemGroup>
+ <ItemGroup>
     <ProjectReference Include="..\MessagingPlatform.Domain\MessagingPlatform.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ardalis.Result" />
-    <PackageReference Include="AutoMapper" />
-    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" />
-    <PackageReference Include="FluentValidation" />
-    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <!-- CQRS & MediatR -->
     <PackageReference Include="MediatR" />
-    <PackageReference Include="MediatR.Contracts" />
+    
+    <!-- Validation -->
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    
+    <!-- Abstractions for DI and configuration -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Common/" />
+    <Folder Include="Common/Behaviors/" />
+    <Folder Include="Common/Exceptions/" />
+    <Folder Include="Common/Interfaces/" />
+    <Folder Include="Common/Models/" />
+    <Folder Include="Conversations/" />
+    <Folder Include="Conversations/Commands/" />
+    <Folder Include="Conversations/Commands/CreateConversation/" />
+    <Folder Include="Conversations/Commands/DeleteConversation/" />
+    <Folder Include="Conversations/Commands/UpdateConversation/" />
+    <Folder Include="Conversations/Dtos/" />
+    <Folder Include="Conversations/Queries/" />
+    <Folder Include="Conversations/Queries/GetConversationById/" />
+    <Folder Include="Groups/" />
+    <Folder Include="Groups/Commands/" />
+    <Folder Include="Groups/Commands/ CreateGroup/" />
+    <Folder Include="Groups/Commands/DeleteGroup/" />
+    <Folder Include="Groups/Commands/UpdateGroup/" />
+    <Folder Include="Groups/Dtos/" />
+    <Folder Include="Groups/Queries/" />
+    <Folder Include="Groups/Queries/GetGroupById/" />
+    <Folder Include="Groups/Queries/GetUserGroups/" />
+    <Folder Include="Messages/" />
+    <Folder Include="Messages/Commands/" />
+    <Folder Include="Messages/Commands/DeleteMessage/" />
+    <Folder Include="Messages/Commands/SendMessage/" />
+    <Folder Include="Messages/Commands/UpdateMessage/" />
+    <Folder Include="Messages/Dtos/" />
+    <Folder Include="Messages/Queries/" />
+    <Folder Include="Messages/Queries/GetConversationMessages/" />
+    <Folder Include="Messages/Queries/GetMessageById/" />
+  </ItemGroup>
+
 
 </Project>
