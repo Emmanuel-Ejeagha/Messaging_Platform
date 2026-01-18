@@ -1,46 +1,40 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MessagingPlatform.API</RootNamespace>
+    <AssemblyName>MessagingPlatform.API</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Project references -->
+    <Content Include="Properties/launchSettings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MessagingPlatform.Application\MessagingPlatform.Application.csproj" />
     <ProjectReference Include="..\MessagingPlatform.Infrastructure\MessagingPlatform.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Web API packages only -->
+    <!-- Web API essentials -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    
+    <!-- Swagger/OpenAPI -->
     <PackageReference Include="Swashbuckle.AspNetCore" />
     
-    <!-- Problem Details for error handling -->
-    <PackageReference Include="Hellang.Middleware.ProblemDetails" />
+    <!-- MediatR for API layer registration -->
+    <PackageReference Include="MediatR" />
     
-    <!-- Rate limiting -->
-    <PackageReference Include="AspNetCoreRateLimit" />
-    
-    <!-- Health checks -->
-    <PackageReference Include="AspNetCore.HealthChecks.UI" />
-    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
-    
-    <!-- JSON serialization -->
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
-    
-    <!-- Correlation IDs -->
-    <PackageReference Include="CorrelationId" />
-    
-    <!-- HTTP context accessor for CurrentUserService -->
-    <PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" />
+    <!-- EF Core Design for migrations -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Controllers/" />
-    <Folder Include="Models/" />
-    <Folder Include="Models/Reponses/" />
+    <Folder Include="Filters/" />
+    <Folder Include="Middlerware/" />
   </ItemGroup>
 
 </Project>
