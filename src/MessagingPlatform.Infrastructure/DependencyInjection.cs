@@ -1,63 +1,45 @@
 using Microsoft.EntityFrameworkCore;
-using MessagingPlatform.Application.Common.Interfaces;
-using MessagingPlatform.Domain.Interfaces;
-using MessagingPlatform.Infrastructure.Data;
-using MessagingPlatform.Infrastructure.Data.Repositories;
-using MessagingPlatform.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-
-
+using MessagingPlatform.Application.Common.Interfaces;
+using MessagingPlatform.Infrastructure.Persistence;
+using MessagingPlatform.Infrastructure.Persistence.Repositories;
 
 namespace MessagingPlatform.Infrastructure;
 
 public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
-        this IServiceCollection services, 
+        this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Add DbContext
-        services.AddDbContext<MessagingDbContext>((sp, options) =>
+        // Add DbContext with PostgreSQL
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrEmpty(connectionString))
         {
-            var connectionString = configuration.GetConnectionString("DefaultConnection")
-                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            
-            options.UseNpgsql(connectionString, npgsqlOptions =>
-            {
-                npgsqlOptions.MigrationsAssembly(typeof(MessagingDbContext).Assembly.FullName);
-                npgsqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(30),
-                    errorCodesToAdd: null);
-            });
-            
-            // Enable sensitive data logging only in development
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development")
-            {
-                options.EnableSensitiveDataLogging();
-                options.EnableDetailedErrors();
-            }
-        });
-        
+            throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+        }
+
+        services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseNpgsql(
+                connectionString,
+                b => 
+                {
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(
+                        maxRetryCount: 5,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null);
+                }));
+
         // Register repositories
         services.AddScoped<IConversationRepository, ConversationRepository>();
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<MessagingDbContext>());
-        
-        // Register services
-        services.AddScoped<ICurrentUserService, CurrentUserService>();
-        services.AddScoped<IDomainEventService, DomainEventService>();
-        services.AddScoped<IDateTimeService, DateTimeService>();
-        
-        // Add HTTP context accessor for currentUserService
-        services.AddHttpContextAccessor();
-        
-        // Add health checks
-        services.AddHealthChecks()
-            .AddDbContextCheck<MessagingDbContext>()
-            .AddNpgSql(configuration.GetConnectionString("DefaultConnection")!);
-        
+        services.AddScoped<IMessageRepository, MessageRepository>();
+        services.AddScoped<IGroupRepository, GroupRepository>();
+
+        // Register ApplicationDbContext as IApplicationDbContext
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
         return services;
     }
 }
