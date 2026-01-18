@@ -1,45 +1,49 @@
-using System.Text.Json;
 using MessagingPlatform.Domain.Common;
-using MessagingPlatform.Domain.Enums;
 using MessagingPlatform.Domain.Exceptions;
 
 namespace MessagingPlatform.Domain.ValueObjects;
 
 public sealed class MessageContent : ValueObject
 {
-    public string Text { get; }
-    public MessageContentType Type { get; }
-    public Dictionary<string, object>? Metadata { get; private set; }
-    
-    private MessageContent(string text, MessageContentType type)
+    public string Content { get; }
+    public string? MediaUrl { get; }
+    public bool HasMedia => !string.IsNullOrEmpty(MediaUrl);
+
+    private const int MaxLength = 5000;
+    private const int MaxMediaUrlLength = 2048;
+
+    private MessageContent(string content, string? mediaUrl = null)
     {
-        if (string.IsNullOrWhiteSpace(text))
-            throw new DomainException("Message text cannot be empty");
-        
-        if (type != MessageContentType.Deleted && text.Length > 5000)
-            throw new DomainException("Message text cannot exceed 5000 characters");
-        
-        Text = text.Trim();
-        Type = type;
+        if (string.IsNullOrWhiteSpace(content) && string.IsNullOrWhiteSpace(mediaUrl))
+            throw new DomainException("Message must have either content or media");
+
+        if (content?.Length > MaxLength)
+            throw new DomainException($"Message content cannot exceed {MaxLength} characters");
+
+        if (mediaUrl?.Length > MaxMediaUrlLength)
+            throw new DomainException($"Media URL cannot exceed {MaxMediaUrlLength} characters");
+
+        Content = content ?? string.Empty;
+        MediaUrl = mediaUrl;
     }
-    
-    public static MessageContent CreateText(string text) => new(text, MessageContentType.Text);
-    public static MessageContent CreateSystem(string text) => new(text, MessageContentType.System);
-    public static MessageContent CreateDeleted(string text) => new(text, MessageContentType.Deleted);
-    
-    public void AddMetadata(string key, object value)
+
+    public static MessageContent Create(string content, string? mediaUrl = null)
     {
-        Metadata ??= new Dictionary<string, object>();
-        Metadata[key] = value;
+        return new MessageContent(content, mediaUrl);
     }
-    
+
+    public static MessageContent CreateWithMedia(string mediaUrl, string? caption = null)
+    {
+        return new MessageContent(caption ?? string.Empty, mediaUrl);
+    }
+
+    public bool IsEmpty => string.IsNullOrWhiteSpace(Content) && string.IsNullOrWhiteSpace(MediaUrl);
+
     protected override IEnumerable<object> GetEqualityComponents()
     {
-        yield return Text;
-        yield return Type;
-        if (Metadata != null)
-        {
-            yield return JsonSerializer.Serialize(Metadata);
-        }
+        yield return Content;
+        yield return MediaUrl ?? string.Empty;
     }
+
+    public override string ToString() => Content;
 }
