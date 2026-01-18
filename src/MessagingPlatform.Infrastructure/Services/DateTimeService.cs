@@ -1,13 +1,13 @@
-using System;
+using MessagingPlatform.Application.Common.Interfaces;
 
 namespace MessagingPlatform.Infrastructure.Services;
 
-public interface IDateTimeService
+public class DateTimeService : IDateTime
 {
-    DateTime UtcNow { get; }
+    public DateTime Now => DateTime.UtcNow;
 }
 
-public class DateTimeService : IDateTimeService
+public interface IDateTime
 {
-    public DateTime UtcNow => DateTime.UtcNow;
+    DateTime Now { get; }
 }
