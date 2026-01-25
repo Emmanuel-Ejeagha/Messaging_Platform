@@ -1,0 +1,11 @@
+# Development overrides for docker-compose.yml
+# This file is automatically loaded when running docker-compose up
+
+services:
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+    volumes:
+      - ./src:/src:cached
+    ports:
+      - "5000:8080"

@@ -20,3 +20,7 @@ x64/
 
 # Output directories
 publish/
+
+# Environment variables
+.env
+.env.local
